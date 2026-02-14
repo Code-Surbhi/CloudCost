@@ -14,10 +14,18 @@ function App() {
   const [killSwitchActive, setKillSwitchActive] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:3000/")
-      .then((res) => res.json())
-      .then((data) => setData(data))
-      .catch((err) => console.error(err));
+    const fetchData = () => {
+      fetch("http://localhost:3000/")
+        .then((res) => res.json())
+        .then((data) => setData(data))
+        .catch((err) => console.error(err));
+    };
+
+    fetchData(); // initial load
+
+    const interval = setInterval(fetchData, 30000); // refresh every 30 seconds
+
+    return () => clearInterval(interval); // cleanup
   }, []);
 
   if (!data) return <h2 style={{ padding: "40px" }}>Loading...</h2>;
