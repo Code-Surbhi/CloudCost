@@ -35,6 +35,8 @@ function App() {
 
   const projectedMonthlyCost = averageDailySpend * totalDaysInMonth;
 
+  const forecastAlert = projectedMonthlyCost >= data.threshold;
+
   const cardStyle = {
     background: "white",
     padding: "20px",
@@ -53,6 +55,22 @@ function App() {
       }}
     >
       <h1 style={{ marginBottom: "30px" }}>🚀 CloudCost Sentinel Dashboard</h1>
+
+      {forecastAlert && (
+        <div
+          style={{
+            backgroundColor: "#ffcccc",
+            padding: "15px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            color: "darkred",
+            fontWeight: "bold",
+          }}
+        >
+          ⚠ Warning: Based on current spending rate, you are projected to exceed
+          your monthly threshold!
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div style={{ display: "flex", gap: "20px" }}>
