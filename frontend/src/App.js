@@ -7,19 +7,64 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from "recharts";
 
 function App() {
   const [data, setData] = useState(null);
+  const [killSwitchActive, setKillSwitchActive] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:3000/")
-      .then((res) => res.json())
-      .then((data) => setData(data))
-      .catch((err) => console.error(err));
+    const fetchData = () => {
+      fetch("http://localhost:3000/")
+        .then((res) => res.json())
+        .then((data) => {
+          setData(data);
+          setKillSwitchActive(data.killSwitchActive);
+        })
+        .catch((err) => console.error(err));
+    };
+
+    fetchData(); // initial load
+
+    const interval = setInterval(fetchData, 30000); // refresh every 30 seconds
+
+    return () => clearInterval(interval); // cleanup
   }, []);
 
   if (!data) return <h2 style={{ padding: "40px" }}>Loading...</h2>;
+
+  // Forecast Logic
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const totalDaysInMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+
+  const averageDailySpend = dayOfMonth > 0 ? data.totalCost / dayOfMonth : 0;
+
+  const projectedMonthlyCost = averageDailySpend * totalDaysInMonth;
+
+  const forecastAlert = projectedMonthlyCost >= data.threshold;
+
+  let anomalyDetected = false;
+
+  if (data.dailyBreakdown && data.dailyBreakdown.length > 1) {
+    const todayCost = data.dailyBreakdown[data.dailyBreakdown.length - 1].cost;
+
+    const historicalDays = data.dailyBreakdown.slice(0, -1);
+
+    const historicalAverage =
+      historicalDays.reduce((sum, day) => sum + day.cost, 0) /
+      historicalDays.length;
+
+    if (historicalAverage > 0) {
+      anomalyDetected = todayCost > historicalAverage * 2;
+    }
+  }
 
   const cardStyle = {
     background: "white",
@@ -39,6 +84,38 @@ function App() {
       }}
     >
       <h1 style={{ marginBottom: "30px" }}>🚀 CloudCost Sentinel Dashboard</h1>
+
+      {forecastAlert && (
+        <div
+          style={{
+            backgroundColor: "#ffcccc",
+            padding: "15px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            color: "darkred",
+            fontWeight: "bold",
+          }}
+        >
+          ⚠ Warning: Based on current spending rate, you are projected to exceed
+          your monthly threshold!
+        </div>
+      )}
+
+      {anomalyDetected && (
+        <div
+          style={{
+            backgroundColor: "#ffe0b3",
+            padding: "15px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            color: "#cc5200",
+            fontWeight: "bold",
+          }}
+        >
+          🚨 Anomaly Detected: Today's spending is significantly higher than
+          historical average.
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div style={{ display: "flex", gap: "20px" }}>
@@ -62,6 +139,11 @@ function App() {
             {data.alert ? "⚠ ALERT" : "✓ SAFE"}
           </h2>
         </div>
+
+        <div style={{ ...cardStyle, flex: 1 }}>
+          <h3>Projected Monthly Cost</h3>
+          <h2>${projectedMonthlyCost.toFixed(2)}</h2>
+        </div>
       </div>
 
       {/* Chart Section */}
@@ -83,6 +165,54 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: "30px" }}>
+        <h3>Cost by AWS Service</h3>
+        <div style={{ width: "100%", height: 300 }}>
+          <ResponsiveContainer>
+            <BarChart data={data.serviceBreakdown || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="service" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="cost" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Kill Switch Simulation */}
+      <div style={{ ...cardStyle, marginTop: "30px" }}>
+        <h3>Kill Switch Simulation</h3>
+
+        <p>
+          {killSwitchActive
+            ? "⚠ Resources are suspended to prevent further cost."
+            : "System operating normally."}
+        </p>
+
+        <button
+          onClick={() => {
+            fetch("http://localhost:3000/kill-switch", {
+              method: "POST",
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                setKillSwitchActive(data.killSwitchActive);
+              });
+          }}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: killSwitchActive ? "green" : "red",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          {killSwitchActive ? "Restore System" : "Activate Kill Switch"}
+        </button>
       </div>
     </div>
   );
