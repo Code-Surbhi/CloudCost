@@ -19,7 +19,10 @@ function App() {
     const fetchData = () => {
       fetch("http://localhost:3000/")
         .then((res) => res.json())
-        .then((data) => setData(data))
+        .then((data) => {
+          setData(data);
+          setKillSwitchActive(data.killSwitchActive);
+        })
         .catch((err) => console.error(err));
     };
 
@@ -190,7 +193,15 @@ function App() {
         </p>
 
         <button
-          onClick={() => setKillSwitchActive(!killSwitchActive)}
+          onClick={() => {
+            fetch("http://localhost:3000/kill-switch", {
+              method: "POST",
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                setKillSwitchActive(data.killSwitchActive);
+              });
+          }}
           style={{
             padding: "10px 20px",
             backgroundColor: killSwitchActive ? "green" : "red",

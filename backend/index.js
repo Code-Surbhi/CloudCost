@@ -11,7 +11,9 @@ const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const app = express();
 app.use(cors());
 const PORT = 3000;
-const COST_THRESHOLD = 0; // Keep 0 for testing only
+const COST_THRESHOLD = 3; // Keep 0 for testing only
+
+let killSwitchActive = false;
 
 // ===============================
 // AWS CLIENTS
@@ -98,6 +100,7 @@ app.get("/", async (req, res) => {
       currency: results[0]?.Total?.UnblendedCost?.Unit || "USD",
       dailyBreakdown,
       serviceBreakdown,
+      killSwitchActive,
     });
   } catch (error) {
     if (error.name === "DataUnavailableException") {
@@ -143,6 +146,17 @@ app.get("/test-sns", async (req, res) => {
     console.error("SNS Test Error:", error);
     res.status(500).json({ error: "SNS test failed" });
   }
+});
+
+app.post("/kill-switch", (req, res) => {
+  killSwitchActive = !killSwitchActive;
+
+  console.log("Kill Switch toggled:", killSwitchActive);
+
+  res.json({
+    message: "Kill switch state updated",
+    killSwitchActive,
+  });
 });
 
 app.listen(PORT, () => {
