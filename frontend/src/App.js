@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 function App() {
   const [data, setData] = useState(null);
@@ -25,6 +34,20 @@ function App() {
           {data.alert ? "⚠ ALERT" : "✓ Safe"}
         </span>
       </h3>
+
+      <h2 style={{ marginTop: "40px" }}>Daily Cost Trend</h2>
+
+      <div style={{ width: "100%", height: 300 }}>
+        <ResponsiveContainer>
+          <LineChart data={data.dailyBreakdown}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="cost" stroke="#8884d8" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
