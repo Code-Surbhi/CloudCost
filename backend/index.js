@@ -7,6 +7,7 @@ const {
 
 const app = express();
 const PORT = 3000;
+const COST_THRESHOLD = 3; // USD monthly safety limit
 
 // Create AWS client
 const client = new CostExplorerClient({
@@ -44,8 +45,12 @@ app.get("/", async (req, res) => {
 
     const totalCost = dailyBreakdown.reduce((sum, day) => sum + day.cost, 0);
 
+    const alert = totalCost >= COST_THRESHOLD;
+
     res.json({
       totalCost,
+      threshold: COST_THRESHOLD,
+      alert,
       currency: results[0]?.Total?.UnblendedCost?.Unit || "USD",
       dailyBreakdown,
     });
@@ -55,6 +60,8 @@ app.get("/", async (req, res) => {
         message:
           "Cost data not available yet. Cost Explorer is still initializing.",
         totalCost: 0,
+        threshold: COST_THRESHOLD,
+        alert: false,
         dailyBreakdown: [],
       });
     }
