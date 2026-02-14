@@ -5,11 +5,16 @@ const {
   GetCostAndUsageCommand,
 } = require("@aws-sdk/client-cost-explorer");
 
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
+
 const app = express();
 const PORT = 3000;
-const COST_THRESHOLD = 3; // USD monthly safety limit
+const COST_THRESHOLD = 0; // Keep 0 for testing only
 
-// Create AWS client
+// ===============================
+// AWS CLIENTS
+// ===============================
+
 const client = new CostExplorerClient({
   region: process.env.AWS_REGION,
   credentials: {
@@ -17,6 +22,18 @@ const client = new CostExplorerClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
+
+const snsClient = new SNSClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+// ===============================
+// MAIN COST ROUTE
+// ===============================
 
 app.get("/", async (req, res) => {
   try {
@@ -33,19 +50,27 @@ app.get("/", async (req, res) => {
     });
 
     const response = await client.send(command);
-
     const results = response.ResultsByTime || [];
 
-    const dailyBreakdown = results.map((day) => {
-      return {
-        date: day.TimePeriod.Start,
-        cost: parseFloat(day.Total.UnblendedCost.Amount),
-      };
-    });
+    const dailyBreakdown = results.map((day) => ({
+      date: day.TimePeriod.Start,
+      cost: parseFloat(day.Total.UnblendedCost.Amount),
+    }));
 
     const totalCost = dailyBreakdown.reduce((sum, day) => sum + day.cost, 0);
 
     const alert = totalCost >= COST_THRESHOLD;
+
+    if (alert && process.env.SNS_TOPIC_ARN) {
+      const publishCommand = new PublishCommand({
+        TopicArn: process.env.SNS_TOPIC_ARN,
+        Subject: "🚨 AWS Cost Alert - Threshold Exceeded",
+        Message: `Your AWS monthly spending is $${totalCost}, which exceeds your threshold of $${COST_THRESHOLD}.`,
+      });
+
+      await snsClient.send(publishCommand);
+      console.log("SNS alert sent successfully.");
+    }
 
     res.json({
       totalCost,
@@ -68,6 +93,35 @@ app.get("/", async (req, res) => {
 
     console.error("Error fetching cost data:", error);
     res.status(500).json({ error: "Failed to fetch cost data" });
+  }
+});
+
+// ===============================
+// SNS TEST ROUTE (INDEPENDENT)
+// ===============================
+
+app.get("/test-sns", async (req, res) => {
+  try {
+    if (!process.env.SNS_TOPIC_ARN) {
+      return res.status(400).json({
+        error: "SNS_TOPIC_ARN not set in .env",
+      });
+    }
+
+    const publishCommand = new PublishCommand({
+      TopicArn: process.env.SNS_TOPIC_ARN,
+      Subject: "🚨 CloudCost Sentinel Test Alert",
+      Message: "This is a test alert from CloudCost Sentinel.",
+    });
+
+    await snsClient.send(publishCommand);
+
+    console.log("Test SNS alert sent successfully.");
+
+    res.json({ message: "Test SNS alert sent successfully!" });
+  } catch (error) {
+    console.error("SNS Test Error:", error);
+    res.status(500).json({ error: "SNS test failed" });
   }
 });
 
