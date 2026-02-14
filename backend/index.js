@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const {
   CostExplorerClient,
   GetCostAndUsageCommand,
@@ -8,6 +9,7 @@ const {
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 const app = express();
+app.use(cors());
 const PORT = 3000;
 const COST_THRESHOLD = 0; // Keep 0 for testing only
 
