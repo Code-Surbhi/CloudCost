@@ -47,6 +47,22 @@ function App() {
 
   const forecastAlert = projectedMonthlyCost >= data.threshold;
 
+  let anomalyDetected = false;
+
+  if (data.dailyBreakdown && data.dailyBreakdown.length > 1) {
+    const todayCost = data.dailyBreakdown[data.dailyBreakdown.length - 1].cost;
+
+    const historicalDays = data.dailyBreakdown.slice(0, -1);
+
+    const historicalAverage =
+      historicalDays.reduce((sum, day) => sum + day.cost, 0) /
+      historicalDays.length;
+
+    if (historicalAverage > 0) {
+      anomalyDetected = todayCost > historicalAverage * 2;
+    }
+  }
+
   const cardStyle = {
     background: "white",
     padding: "20px",
@@ -79,6 +95,22 @@ function App() {
         >
           ⚠ Warning: Based on current spending rate, you are projected to exceed
           your monthly threshold!
+        </div>
+      )}
+
+      {anomalyDetected && (
+        <div
+          style={{
+            backgroundColor: "#ffe0b3",
+            padding: "15px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            color: "#cc5200",
+            fontWeight: "bold",
+          }}
+        >
+          🚨 Anomaly Detected: Today's spending is significantly higher than
+          historical average.
         </div>
       )}
 
