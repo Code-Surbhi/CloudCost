@@ -11,6 +11,7 @@ import {
 
 function App() {
   const [data, setData] = useState(null);
+  const [killSwitchActive, setKillSwitchActive] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:3000/")
@@ -83,6 +84,30 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      </div>
+      {/* Kill Switch Simulation */}
+      <div style={{ ...cardStyle, marginTop: "30px" }}>
+        <h3>Kill Switch Simulation</h3>
+
+        <p>
+          {killSwitchActive
+            ? "⚠ Resources are suspended to prevent further cost."
+            : "System operating normally."}
+        </p>
+
+        <button
+          onClick={() => setKillSwitchActive(!killSwitchActive)}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: killSwitchActive ? "green" : "red",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          {killSwitchActive ? "Restore System" : "Activate Kill Switch"}
+        </button>
       </div>
     </div>
   );
