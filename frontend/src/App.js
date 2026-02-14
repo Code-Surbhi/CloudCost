@@ -22,6 +22,19 @@ function App() {
 
   if (!data) return <h2 style={{ padding: "40px" }}>Loading...</h2>;
 
+  // Forecast Logic
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const totalDaysInMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+
+  const averageDailySpend = dayOfMonth > 0 ? data.totalCost / dayOfMonth : 0;
+
+  const projectedMonthlyCost = averageDailySpend * totalDaysInMonth;
+
   const cardStyle = {
     background: "white",
     padding: "20px",
@@ -62,6 +75,11 @@ function App() {
           >
             {data.alert ? "⚠ ALERT" : "✓ SAFE"}
           </h2>
+        </div>
+
+        <div style={{ ...cardStyle, flex: 1 }}>
+          <h3>Projected Monthly Cost</h3>
+          <h2>${projectedMonthlyCost.toFixed(2)}</h2>
         </div>
       </div>
 
