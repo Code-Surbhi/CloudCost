@@ -33,15 +33,29 @@ app.get("/", async (req, res) => {
 
     const response = await client.send(command);
 
-    console.log("Cost Data:", response);
+    const results = response.ResultsByTime || [];
 
-    res.json(response);
+    const dailyBreakdown = results.map((day) => {
+      return {
+        date: day.TimePeriod.Start,
+        cost: parseFloat(day.Total.UnblendedCost.Amount),
+      };
+    });
+
+    const totalCost = dailyBreakdown.reduce((sum, day) => sum + day.cost, 0);
+
+    res.json({
+      totalCost,
+      currency: results[0]?.Total?.UnblendedCost?.Unit || "USD",
+      dailyBreakdown,
+    });
   } catch (error) {
     if (error.name === "DataUnavailableException") {
       return res.json({
         message:
           "Cost data not available yet. Cost Explorer is still initializing.",
-        cost: 0,
+        totalCost: 0,
+        dailyBreakdown: [],
       });
     }
 
