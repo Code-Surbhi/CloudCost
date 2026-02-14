@@ -7,6 +7,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from "recharts";
 
 function App() {
@@ -129,6 +131,22 @@ function App() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <div style={{ ...cardStyle, marginTop: "30px" }}>
+        <h3>Cost by AWS Service</h3>
+        <div style={{ width: "100%", height: 300 }}>
+          <ResponsiveContainer>
+            <BarChart data={data.serviceBreakdown || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="service" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="cost" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Kill Switch Simulation */}
       <div style={{ ...cardStyle, marginTop: "30px" }}>
         <h3>Kill Switch Simulation</h3>

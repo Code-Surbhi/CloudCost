@@ -20,6 +20,10 @@ Full-stack system integration
 
 Cloud-native scalability path
 
+## Architecture Diagram
+
+![Architecture](docs/architecture.png)
+
 2. Problem Statement
 
 Students and early-stage startups frequently exceed AWS budgets due to:

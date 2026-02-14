@@ -47,12 +47,29 @@ app.get("/", async (req, res) => {
         Start: start.toISOString().split("T")[0],
         End: today.toISOString().split("T")[0],
       },
-      Granularity: "DAILY",
+      Granularity: "MONTHLY",
       Metrics: ["UnblendedCost"],
+      GroupBy: [
+        {
+          Type: "DIMENSION",
+          Key: "SERVICE",
+        },
+      ],
     });
 
     const response = await client.send(command);
     const results = response.ResultsByTime || [];
+
+    const serviceBreakdown = [];
+
+    if (results.length > 0 && results[0].Groups) {
+      results[0].Groups.forEach((group) => {
+        serviceBreakdown.push({
+          service: group.Keys[0],
+          cost: parseFloat(group.Metrics.UnblendedCost.Amount),
+        });
+      });
+    }
 
     const dailyBreakdown = results.map((day) => ({
       date: day.TimePeriod.Start,
@@ -80,6 +97,7 @@ app.get("/", async (req, res) => {
       alert,
       currency: results[0]?.Total?.UnblendedCost?.Unit || "USD",
       dailyBreakdown,
+      serviceBreakdown,
     });
   } catch (error) {
     if (error.name === "DataUnavailableException") {
