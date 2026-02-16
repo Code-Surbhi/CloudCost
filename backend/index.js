@@ -5,6 +5,7 @@ const {
   CostExplorerClient,
   GetCostAndUsageCommand,
 } = require("@aws-sdk/client-cost-explorer");
+const serverless = require("serverless-http");
 
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
@@ -20,19 +21,11 @@ let killSwitchActive = false;
 // ===============================
 
 const client = new CostExplorerClient({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+  region: process.env.AWS_REGION || "us-east-1",
 });
 
 const snsClient = new SNSClient({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+  region: process.env.AWS_REGION || "us-east-1",
 });
 
 // ===============================
@@ -159,6 +152,10 @@ app.post("/kill-switch", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+module.exports.handler = serverless(app);
+
+if (process.env.LOCAL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
