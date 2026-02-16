@@ -17,13 +17,17 @@ function App() {
 
   useEffect(() => {
     const fetchData = () => {
-      fetch("http://localhost:3000/")
-        .then((res) => res.json())
-        .then((data) => {
-          setData(data);
-          setKillSwitchActive(data.killSwitchActive);
+      fetch(
+        "https://52eqbh2ctxn77zdkrejmlp4bwa0tubey.lambda-url.us-east-1.on.aws/",
+      )
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+          }
+          return res.json();
         })
-        .catch((err) => console.error(err));
+        .then((data) => setData(data))
+        .catch((err) => console.error("Fetch Error:", err));
     };
 
     fetchData(); // initial load
@@ -194,9 +198,12 @@ function App() {
 
         <button
           onClick={() => {
-            fetch("http://localhost:3000/kill-switch", {
-              method: "POST",
-            })
+            fetch(
+              "https://52eqbh2ctxn77zdkrejmlp4bwa0tubey.lambda-url.us-east-1.on.aws/kill-switch",
+              {
+                method: "POST",
+              },
+            )
               .then((res) => res.json())
               .then((data) => {
                 setKillSwitchActive(data.killSwitchActive);

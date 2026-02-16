@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const {
   CostExplorerClient,
   GetCostAndUsageCommand,
@@ -10,7 +9,8 @@ const serverless = require("serverless-http");
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 const app = express();
-app.use(cors());
+app.use(express.json());
+
 const PORT = 3000;
 const COST_THRESHOLD = 3; // Keep 0 for testing only
 
@@ -37,7 +37,36 @@ app.get("/", async (req, res) => {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const command = new GetCostAndUsageCommand({
+    // ===============================
+    // 1️⃣ DAILY COST QUERY (No GroupBy)
+    // ===============================
+
+    const dailyCommand = new GetCostAndUsageCommand({
+      TimePeriod: {
+        Start: start.toISOString().split("T")[0],
+        End: today.toISOString().split("T")[0],
+      },
+      Granularity: "DAILY",
+      Metrics: ["UnblendedCost"],
+    });
+
+    const dailyResponse = await client.send(dailyCommand);
+    const dailyResults = dailyResponse.ResultsByTime || [];
+
+    const dailyBreakdown = dailyResults.map((day) => ({
+      date: day.TimePeriod.Start,
+      cost: parseFloat(
+        parseFloat(day.Total?.UnblendedCost?.Amount || 0).toFixed(2),
+      ),
+    }));
+
+    const totalCost = dailyBreakdown.reduce((sum, day) => sum + day.cost, 0);
+
+    // ===============================
+    // 2️⃣ SERVICE BREAKDOWN QUERY (Grouped)
+    // ===============================
+
+    const serviceCommand = new GetCostAndUsageCommand({
       TimePeriod: {
         Start: start.toISOString().split("T")[0],
         End: today.toISOString().split("T")[0],
@@ -52,26 +81,21 @@ app.get("/", async (req, res) => {
       ],
     });
 
-    const response = await client.send(command);
-    const results = response.ResultsByTime || [];
+    const serviceResponse = await client.send(serviceCommand);
+    const serviceResults = serviceResponse.ResultsByTime || [];
 
     const serviceBreakdown = [];
 
-    if (results.length > 0 && results[0].Groups) {
-      results[0].Groups.forEach((group) => {
+    if (serviceResults.length > 0 && serviceResults[0].Groups) {
+      serviceResults[0].Groups.forEach((group) => {
         serviceBreakdown.push({
           service: group.Keys[0],
-          cost: parseFloat(group.Metrics.UnblendedCost.Amount),
+          cost: parseFloat(
+            parseFloat(group.Metrics?.UnblendedCost?.Amount || 0).toFixed(2),
+          ),
         });
       });
     }
-
-    const dailyBreakdown = results.map((day) => ({
-      date: day.TimePeriod.Start,
-      cost: parseFloat(day.Total.UnblendedCost.Amount),
-    }));
-
-    const totalCost = dailyBreakdown.reduce((sum, day) => sum + day.cost, 0);
 
     const alert = totalCost >= COST_THRESHOLD;
 
@@ -86,11 +110,11 @@ app.get("/", async (req, res) => {
       console.log("SNS alert sent successfully.");
     }
 
-    res.json({
+    res.status(200).json({
       totalCost,
       threshold: COST_THRESHOLD,
       alert,
-      currency: results[0]?.Total?.UnblendedCost?.Unit || "USD",
+      currency: dailyResults[0]?.Total?.UnblendedCost?.Unit || "USD",
       dailyBreakdown,
       serviceBreakdown,
       killSwitchActive,
