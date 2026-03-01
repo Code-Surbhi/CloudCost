@@ -1,3 +1,5 @@
+IMPROVE THIS README!!
+
 CloudCost Sentinel — Personal AWS Cost Guard
 
 1. Overview
